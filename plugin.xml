@@ -143,6 +143,8 @@
             <header-file src="src/ios/JWT/Core/Supplement/JWTDeprecations.h" />
             <header-file src="src/ios/JWT/Core/Supplement/JWTErrorDescription.h" />
             <source-file src="src/ios/JWT/Core/Supplement/JWTErrorDescription.m" />
+            <header-file src="src/ios/Base64/MF_Base64Additions.h" />
+            <source-file src="src/ios/Base64/MF_Base64Additions.m" />
             <config-file target="config.xml" parent="/*">
                 <feature name="CodePush">
                     <param name="ios-package" value="CodePush" />
