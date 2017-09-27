@@ -6,3 +6,6 @@ bin/test/*
 
 #ignore the test output files
 test-*
+
+#ignore IDE artifacts
+.idea/*

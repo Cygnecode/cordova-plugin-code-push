@@ -47,65 +47,75 @@ var LocalPackage = (function (_super) {
                 _this.localPath = deployDir.fullPath;
                 _this.finishInstall(deployDir, installOptions, installSuccess, installError);
             };
-            var newPackageUnzipped = function (unzipError) {
-                if (unzipError) {
-                    installError && installError(new Error("Could not unzip package. " + CodePushUtil.getErrorMessage(unzipError)));
+            var newPackageUnzippedAndVerified = function (error) {
+                if (error) {
+                    installError && installError(new Error("Could not unzip and verify package. " + CodePushUtil.getErrorMessage(error)));
                 }
                 else {
                     LocalPackage.handleDeployment(newPackageLocation, CodePushUtil.getNodeStyleCallbackFor(donePackageFileCopy, installError));
                 }
             };
             FileUtil.getDataDirectory(LocalPackage.DownloadUnzipDir, false, function (error, directoryEntry) {
-                var unzipPackage = function () {
+                var unzipAndVerifyPackage = function () {
                     FileUtil.getDataDirectory(LocalPackage.DownloadUnzipDir, true, function (innerError, unzipDir) {
                         if (innerError) {
                             installError && installError(innerError);
+                            return;
                         }
-                        else {
-                            zip.unzip(_this.localPath, unzipDir.toInternalURL(), function (unzipError) {
-                                cordova.exec(function (localHash) {
-                                    console.log('hash for downloaded package: ' + localHash);
-                                    FileUtil.readFile(cordova.file.dataDirectory, unzipDir.fullPath + '/www', '.codepushrelease', function (error, contents) {
-                                        if (error) {
-                                            console.log('error reading codepushrelease file: ' + error);
-                                            installError && installError(new Error('error reading codepushrelease file: ' + error));
-                                            return;
-                                        }
-                                        cordova.exec(function (expectedHash) {
-                                            console.log("signature verification success, expected hash '" + expectedHash + "'");
-                                            if (localHash === expectedHash) {
-                                                newPackageUnzipped(unzipError);
-                                            }
-                                            else {
-                                                installError && installError(new Error("package hash verification failed"));
-                                            }
-                                        }, function (err) {
-                                            console.log("signature verification error: " + err);
-                                            installError && installError(new Error("signature verification error: " + err));
-                                        }, "CodePush", "verifySignature", [contents]);
-                                    });
-                                }, function (error) {
-                                    installError && installError(new Error("unable to compute hash for package: " + error));
-                                }, "CodePush", "getPackageHash", [unzipDir.fullPath]);
-                            });
-                        }
+                        zip.unzip(_this.localPath, unzipDir.toInternalURL(), function (unzipError) {
+                            if (unzipError) {
+                                installError && installError(new Error("Could not unzip package. " + CodePushUtil.getErrorMessage(unzipError)));
+                            }
+                            _this.verifyPackage(unzipDir, installError, newPackageUnzippedAndVerified);
+                        });
                     });
                 };
                 if (!error && !!directoryEntry) {
                     directoryEntry.removeRecursively(function () {
-                        unzipPackage();
+                        unzipAndVerifyPackage();
                     }, function (cleanupError) {
                         installError && installError(FileUtil.fileErrorToError(cleanupError));
                     });
                 }
                 else {
-                    unzipPackage();
+                    unzipAndVerifyPackage();
                 }
             });
         }
         catch (e) {
             installError && installError(new Error("An error occured while installing the package. " + CodePushUtil.getErrorMessage(e)));
         }
+    };
+    LocalPackage.prototype.verifyPackage = function (unzipDir, installError, callback) {
+        var _this = this;
+        var packageHashSuccess = function (localHash) {
+            console.log('hash for downloaded package: ' + localHash);
+            FileUtil.readFile(cordova.file.dataDirectory, unzipDir.fullPath + '/www', '.codepushrelease', function (error, contents) {
+                var verifySignatureSuccess = function (expectedHash) {
+                    if (localHash != _this.packageHash) {
+                        installError(new Error("package hash verification failed"));
+                        return;
+                    }
+                    if (!expectedHash) {
+                        callback(null, false);
+                        return;
+                    }
+                    if (localHash === expectedHash) {
+                        callback(null, true);
+                        return;
+                    }
+                    installError(new Error("package hash verification failed"));
+                };
+                var verifySignatureFail = function (error) {
+                    installError && installError(new Error("signature verification error: " + error));
+                };
+                cordova.exec(verifySignatureSuccess, verifySignatureFail, "CodePush", "verifySignature", [contents]);
+            });
+        };
+        var packageHashFail = function (error) {
+            installError && installError(new Error("unable to compute hash for package: " + error));
+        };
+        cordova.exec(packageHashSuccess, packageHashFail, "CodePush", "getPackageHash", [unzipDir.fullPath]);
     };
     LocalPackage.prototype.finishInstall = function (deployDir, installOptions, installSuccess, installError) {
         var _this = this;
