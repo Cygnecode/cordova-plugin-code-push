@@ -76,6 +76,12 @@ StatusReport* rollbackStatusReport = nil;
         NSString *jwt = [command argumentAtIndex:0 withDefault:nil andClass:[NSString class]];
         NSString *publicKey = ((CDVViewController *) self.viewController).settings[PublicKeyPreference];
 
+        // bail out early if no public key was configured in config.xml
+        if (!publicKey) {
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatis:CDVCommandStatus_OK] callbackId:command.callbackId];
+            return;
+        }
+
         id <JWTAlgorithmDataHolderProtocol> verifyDataHolder = [JWTAlgorithmRSFamilyDataHolder new]
                 .keyExtractorType([JWTCryptoKeyExtractor publicKeyWithPEMBase64].type)
                 .algorithmName(@"RS256")
