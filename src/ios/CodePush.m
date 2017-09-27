@@ -78,7 +78,7 @@ StatusReport* rollbackStatusReport = nil;
 
         // bail out early if no public key was configured in config.xml
         if (!publicKey) {
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatis:CDVCommandStatus_OK] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
             return;
         }
 
