@@ -62,7 +62,32 @@ var LocalPackage = (function (_super) {
                             installError && installError(innerError);
                         }
                         else {
-                            zip.unzip(_this.localPath, unzipDir.toInternalURL(), newPackageUnzipped);
+                            zip.unzip(_this.localPath, unzipDir.toInternalURL(), function (unzipError) {
+                                cordova.exec(function (localHash) {
+                                    console.log('hash for downloaded package: ' + localHash);
+                                    FileUtil.readFile(cordova.file.dataDirectory, unzipDir.fullPath + '/www', '.codepushrelease', function (error, contents) {
+                                        if (error) {
+                                            console.log('error reading codepushrelease file: ' + error);
+                                            installError && installError(new Error('error reading codepushrelease file: ' + error));
+                                            return;
+                                        }
+                                        cordova.exec(function (expectedHash) {
+                                            console.log("signature verification success, expected hash '" + expectedHash + "'");
+                                            if (localHash === expectedHash) {
+                                                newPackageUnzipped(unzipError);
+                                            }
+                                            else {
+                                                installError && installError(new Error("package hash verification failed"));
+                                            }
+                                        }, function (err) {
+                                            console.log("signature verification error: " + err);
+                                            installError && installError(new Error("signature verification error: " + err));
+                                        }, "CodePush", "verifySignature", [contents]);
+                                    });
+                                }, function (error) {
+                                    installError && installError(new Error("unable to compute hash for package: " + error));
+                                }, "CodePush", "getPackageHash", [unzipDir.fullPath]);
+                            });
                         }
                     });
                 };

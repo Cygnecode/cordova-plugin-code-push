@@ -85,7 +85,43 @@ class LocalPackage extends Package implements ILocalPackage {
                         if (innerError) {
                             installError && installError(innerError);
                         } else {
-                            zip.unzip(this.localPath, unzipDir.toInternalURL(), newPackageUnzipped);
+
+                            zip.unzip(this.localPath, unzipDir.toInternalURL(), (unzipError: any) => {
+                                // TODO: move this to a more sensible location
+                                cordova.exec(
+                                    (localHash) => {
+                                        console.log('hash for downloaded package: ' + localHash);
+                                        FileUtil.readFile(cordova.file.dataDirectory, unzipDir.fullPath + '/www', '.codepushrelease', (error, contents) => {
+                                            if (error) {
+                                                console.log('error reading codepushrelease file: ' + error);
+                                                installError && installError(new Error('error reading codepushrelease file: ' + error));
+                                                return;
+                                            }
+                                            cordova.exec(
+                                                (expectedHash) => {
+                                                    console.log("signature verification success, expected hash '" + expectedHash + "'");
+                                                    if (localHash === expectedHash) {
+                                                        newPackageUnzipped(unzipError);
+                                                    } else {
+                                                        installError && installError(new Error("package hash verification failed"));
+                                                    }
+                                                },
+                                                (err) => {
+                                                    console.log("signature verification error: " + err);
+                                                    installError && installError(new Error("signature verification error: " + err));
+                                                },
+                                                "CodePush",
+                                                "verifySignature",
+                                                [contents]);
+                                        });
+                                    },
+                                    (error) => {
+                                        installError && installError(new Error("unable to compute hash for package: " + error));
+                                    },
+                                    "CodePush",
+                                    "getPackageHash",
+                                    [unzipDir.fullPath]);
+                            });
                         }
                     });
                 };
