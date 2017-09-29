@@ -117,9 +117,11 @@ class LocalPackage extends Package implements ILocalPackage {
         var packageHashSuccess = (localHash: string) => {
             FileUtil.readFile(cordova.file.dataDirectory, unzipDir.fullPath + '/www', '.codepushrelease', (error, contents) => {
                 var verifySignatureSuccess = (expectedHash?: string) => {
+                    console.log('localHash: ' + localHash);
+                    console.log('packageHash: ' + this.packageHash);
                     // first, we always compare the hash we just calculated to the packageHash reported from the server
                     if (localHash !== this.packageHash) {
-                        installError(new Error("package hash verification failed"))
+                        installError(new Error("package hash verification failed"));
                         return;
                     }
 

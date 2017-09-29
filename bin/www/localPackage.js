@@ -89,9 +89,10 @@ var LocalPackage = (function (_super) {
     LocalPackage.prototype.verifyPackage = function (unzipDir, installError, callback) {
         var _this = this;
         var packageHashSuccess = function (localHash) {
-            console.log('hash for downloaded package: ' + localHash);
             FileUtil.readFile(cordova.file.dataDirectory, unzipDir.fullPath + '/www', '.codepushrelease', function (error, contents) {
                 var verifySignatureSuccess = function (expectedHash) {
+                    console.log('localHash: ' + localHash);
+                    console.log('packageHash: ' + _this.packageHash);
                     if (localHash !== _this.packageHash) {
                         installError(new Error("package hash verification failed"));
                         return;
