@@ -90,7 +90,7 @@ public class CodePush extends CordovaPlugin {
             @Override
             protected Void doInBackground(Void... voids) {
                 // no actual code sign verification implemented for Android yet, just return null
-                callbackContext.success();
+                callbackContext.success((String) null);
                 return null;
             }
         }.execute();

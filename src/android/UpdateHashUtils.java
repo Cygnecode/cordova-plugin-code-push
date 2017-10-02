@@ -60,24 +60,26 @@ public class UpdateHashUtils {
             fileList = new File(path).list();
         }
         if (fileList != null && fileList.length > 0) {
-            // This is a folder, recursively add folder entries to the manifest.
             for (String pathInFolder : fileList) {
                 if (UpdateHashUtils.ignoredFiles.contains(pathInFolder)) {
                     continue;
                 }
-                String relativePath = new File(prefix, pathInFolder).getPath();
-                String absolutePath = new File(path, pathInFolder).getPath();
-                addFolderEntriesToManifest(manifestEntries, relativePath, absolutePath, assetManager);
+                File relativePath = new File(prefix, pathInFolder);
+                File absolutePath = new File(path, pathInFolder);
+                if (absolutePath.isDirectory()) {
+                    addFolderEntriesToManifest(manifestEntries, relativePath.getPath(), absolutePath.getPath(), assetManager);
+                } else {
+                    InputStream inputStream;
+                    if (assetManager != null) {
+                        inputStream = assetManager.open(relativePath.getPath());
+                    } else {
+                        inputStream = new FileInputStream(absolutePath.getPath());
+                    }
+                    manifestEntries.add(relativePath.getPath() + ":" + computeHash(inputStream));
+                }
             }
         } else {
-            // This is a file, compute a hash and create a manifest entry for it.
-            InputStream inputStream;
-            if (assetManager != null) {
-                inputStream = assetManager.open(path);
-            } else {
-                inputStream = new FileInputStream(path);
-            }
-            manifestEntries.add(new File(prefix, new File(path).getName()).getPath() + ":" + computeHash(inputStream));
+            throw new IOException("invalid directory path " + path);
         }
     }
 
