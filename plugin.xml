@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<<<<<<< HEAD
     <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-code-push" version="1.9.6-nrgpatch">
+=======
+    <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-code-push" version="1.9.8-beta">
+>>>>>>> upstream/master
         <name>CodePush</name>
         <description>This plugin allows you to push code updates to your apps instantly using the CodePush service</description>
         <license>MIT</license>
@@ -79,6 +83,7 @@
         </platform>
 
         <platform name="ios">
+            <framework src="JWT" type="podspec" spec="3.0.0-beta.4" />
             <source-file src="src/ios/CDVWKWebViewEngine+CodePush.m" />
             <header-file src="src/ios/CodePush.h" />
             <source-file src="src/ios/CodePush.m" />
