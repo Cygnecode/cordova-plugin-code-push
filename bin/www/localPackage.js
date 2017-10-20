@@ -43,42 +43,40 @@ var LocalPackage = (function (_super) {
                 Sdk.reportStatusDeploy(_this, AcquisitionStatus.DeploymentFailed, _this.deploymentKey);
             };
             var newPackageLocation = LocalPackage.VersionsDir + "/" + this.packageHash;
-            var donePackageFileCopy = function (deployDir) {
+            var signatureVerified = function (deployDir) {
                 _this.localPath = deployDir.fullPath;
                 _this.finishInstall(deployDir, installOptions, installSuccess, installError);
             };
-            var newPackageUnzippedAndVerified = function (error) {
-                if (error) {
-                    installError && installError(new Error("Could not unzip and verify package. " + CodePushUtil.getErrorMessage(error)));
+            var donePackageFileCopy = function (deployDir) {
+                _this.verifyPackage(deployDir, installError, CodePushUtil.getNodeStyleCallbackFor(signatureVerified, installError));
+            };
+            var newPackageUnzipped = function (unzipError) {
+                if (unzipError) {
+                    installError && installError(new Error("Could not unzip package" + CodePushUtil.getErrorMessage(unzipError)));
                 }
                 else {
                     LocalPackage.handleDeployment(newPackageLocation, CodePushUtil.getNodeStyleCallbackFor(donePackageFileCopy, installError));
                 }
             };
             FileUtil.getDataDirectory(LocalPackage.DownloadUnzipDir, false, function (error, directoryEntry) {
-                var unzipAndVerifyPackage = function () {
+                var unzipPackage = function () {
                     FileUtil.getDataDirectory(LocalPackage.DownloadUnzipDir, true, function (innerError, unzipDir) {
                         if (innerError) {
                             installError && installError(innerError);
                             return;
                         }
-                        zip.unzip(_this.localPath, unzipDir.toInternalURL(), function (unzipError) {
-                            if (unzipError) {
-                                installError && installError(new Error("Could not unzip package. " + CodePushUtil.getErrorMessage(unzipError)));
-                            }
-                            _this.verifyPackage(unzipDir, installError, newPackageUnzippedAndVerified);
-                        });
+                        zip.unzip(_this.localPath, unzipDir.toInternalURL(), newPackageUnzipped);
                     });
                 };
                 if (!error && !!directoryEntry) {
                     directoryEntry.removeRecursively(function () {
-                        unzipAndVerifyPackage();
+                        unzipPackage();
                     }, function (cleanupError) {
                         installError && installError(FileUtil.fileErrorToError(cleanupError));
                     });
                 }
                 else {
-                    unzipAndVerifyPackage();
+                    unzipPackage();
                 }
             });
         }
@@ -96,11 +94,11 @@ var LocalPackage = (function (_super) {
                         return;
                     }
                     if (!expectedHash) {
-                        callback(null, false);
+                        callback(null, unzipDir);
                         return;
                     }
                     if (localHash === expectedHash) {
-                        callback(null, true);
+                        callback(null, unzipDir);
                         return;
                     }
                     installError(new Error("package hash verification failed"));
